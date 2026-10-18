@@ -1,0 +1,49 @@
+{
+  "updated": "2026-10-18 09:00",
+  "summary": [
+    { "label": "Revenue this month", "value": "$48,200", "tone": "good" },
+    { "label": "Open deals", "value": "9" },
+    { "label": "At risk", "value": "2", "tone": "bad" }
+  ],
+  "districts": [
+    { "id": "sales", "name": "Sales", "color": "#f5c542", "line": "$31,400 closed - 5 open" },
+    { "id": "support", "name": "Support", "color": "#6fb6ff", "line": "14 tickets - 2 urgent" },
+    { "id": "product", "name": "Product", "color": "#5dff9b", "line": "3 releases this month" },
+    { "id": "ops", "name": "Operations", "color": "#c9a8ff", "line": "all systems normal" }
+  ],
+  "buildings": [
+    { "id": "acme", "district": "sales", "name": "Acme Corp", "style": "tower", "height": 20, "lit": 0.8,
+      "value": "+$12,400", "tone": "good", "status": "Renewal signed",
+      "gauges": [ { "label": "Quota", "share": 0.82, "color": "#3fc56b" }, { "label": "Health", "share": 0.6, "color": "#f5c542" } ],
+      "live": [ { "text": "Upsell call Thursday", "value": "+$3,000", "tone": "good" } ],
+      "stats": [ ["Owner", "Sam"], ["Stage", "Customer"], ["Since", "2024"], ["Seats", "120"] ],
+      "list": [ ["Oct 14", "Renewal signed", "+$9,400", "good"], ["Sep 30", "Invoice paid", "+$3,000", "good"] ],
+      "history": [2, 4, 3, 6, 8, 7, 10, 12],
+      "about": "Our largest customer. Replace this text with anything you like." },
+    { "id": "globex", "district": "sales", "name": "Globex", "style": "spire", "height": 15, "lit": 0.5,
+      "value": "$4,800", "status": "Proposal sent",
+      "live": [ { "text": "Waiting on legal", "value": "", "tone": "" } ],
+      "stats": [ ["Owner", "Ana"], ["Stage", "Proposal"] ], "history": [1, 1, 2, 2, 3] },
+    { "id": "initech", "district": "sales", "name": "Initech", "style": "block", "height": 9, "lit": 0.3,
+      "value": "-$600", "tone": "bad", "status": "Discount requested", "stats": [ ["Owner", "Lee"] ] },
+    { "id": "umbrella", "district": "sales", "name": "Umbrella", "style": "dome", "height": 11, "lit": 0.6,
+      "value": "$7,200", "status": "Demo booked" },
+    { "id": "tickets", "district": "support", "name": "Ticket Desk", "style": "block", "height": 10, "lit": 0.7,
+      "value": "14 open", "status": "2 urgent", "tone": "bad",
+      "gauges": [ { "label": "Answered in 1h", "share": 0.71, "color": "#3fc56b" } ],
+      "list": [ ["Today", "Login issue", "urgent", "bad"], ["Today", "Billing question", "open", ""] ] },
+    { "id": "docs", "district": "support", "name": "Help Center", "style": "twin", "height": 12, "lit": 0.5,
+      "value": "212 articles", "status": "3 updated this week" },
+    { "id": "app", "district": "product", "name": "Mobile App", "style": "tower", "height": 17, "lit": 0.9,
+      "value": "v4.2", "tone": "good", "status": "Released Oct 15",
+      "gauges": [ { "label": "Rollout", "share": 1, "color": "#3fc56b" } ], "history": [3, 5, 4, 7, 9] },
+    { "id": "web", "district": "product", "name": "Website", "style": "spire", "height": 13, "lit": 0.6,
+      "value": "99.98% up", "tone": "good", "status": "No incidents" },
+    { "id": "api", "district": "product", "name": "API", "style": "dome", "height": 9, "lit": 0.4,
+      "value": "v2 beta", "status": "Testing" },
+    { "id": "hq", "district": "ops", "name": "Head Office", "style": "tower", "height": 22, "lit": 0.6,
+      "value": "18 people", "status": "Hiring 2" },
+    { "id": "warehouse", "district": "ops", "name": "Warehouse", "style": "block", "height": 7, "lit": 0.4,
+      "value": "1,240 units", "status": "Restock Friday" }
+  ]
+}

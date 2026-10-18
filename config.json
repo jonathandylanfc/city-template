@@ -1,0 +1,21 @@
+{
+  "title": "My City",
+  "subtitle": "every project as a building",
+  "dataUrl": "data.json",
+  "refreshSeconds": 60,
+  "theme": {
+    "accent": "#9b7bff",
+    "gold": "#f5c542",
+    "good": "#3fc56b",
+    "bad": "#ef6b6b",
+    "ground": "#150f36",
+    "sky": "#05070d",
+    "night": true
+  },
+  "labels": {
+    "valueTitle": "Value",
+    "openTitle": "Open now",
+    "listTitle": "Latest",
+    "aboutTitle": "About"
+  }
+}

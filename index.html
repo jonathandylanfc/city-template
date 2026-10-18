@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>City</title>
+<style>
+  :root { --accent: #9b7bff; --gold: #f5c542; --good: #3fc56b; --bad: #ef6b6b; --ink: #f2f3f5; --ink-2: #b6bccb; --muted: #7d8598;
+          --panel: #120c2a; --line: #2b2350; --glass: rgba(20,13,46,0.82); --panel-w: min(420px, 44vw); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #05070d; color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  button { font: inherit; color: var(--ink); background: var(--glass); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #stage { position: fixed; inset: 0; }
+  #c { display: block; width: 100%; height: 100%; touch-action: none; }
+  header { position: absolute; left: 14px; top: 10px; right: 14px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; pointer-events: none; }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: 0.06em; }
+  header h1 span { color: var(--gold); }
+  header small { color: var(--ink-2); }
+  #stats { position: absolute; left: 14px; top: 46px; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 28px); pointer-events: none; }
+  .tile { background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 5px 12px 6px; backdrop-filter: blur(6px); }
+  .tile .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .tile .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .good { color: var(--good); } .bad { color: var(--bad); }
+  #views { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; gap: 4px; max-width: calc(100% - 24px); overflow-x: auto;
+           background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 4px; backdrop-filter: blur(6px); }
+  #views button { flex: none; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); font-weight: 650; font-size: 13.5px; }
+  #views button.on { background: var(--accent); color: #120c2a; }
+  #tip { position: absolute; display: none; pointer-events: none; background: rgba(10,14,25,0.92); border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; font-size: 13px; white-space: nowrap; }
+  #panel { position: absolute; top: 0; right: 0; bottom: 0; width: var(--panel-w); background: var(--panel); border-left: 1px solid var(--line); display: none; flex-direction: column; }
+  #stage.open #panel { display: flex; }
+  #stage.open #c { width: calc(100% - var(--panel-w)); }
+  #stage.open #views { left: calc((100% - var(--panel-w)) / 2); }
+  #panel .bar { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  #panel .bar .grow { flex: 1; }
+  #panel .head { padding: 12px 16px 8px; }
+  #panel .dist { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+  #panel h2 { margin: 2px 0 0; font-size: 22px; }
+  #panel .hl { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #panel .body { flex: 1; overflow-y: auto; padding: 4px 16px 70px; }
+  #panel h3 { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin: 18px 0 6px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .cell { background: #1b1340; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+  .cell .k { font-size: 12px; color: var(--ink-2); } .cell .v { font-weight: 700; }
+  .live { display: flex; justify-content: space-between; gap: 8px; color: var(--gold); font-weight: 650; margin-top: 4px; }
+  .meter { margin-top: 8px; } .meter .top { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); }
+  .meter .track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; } .meter b { display: block; height: 100%; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; } td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line); } td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .spark svg { width: 100%; height: 80px; display: block; }
+  #list { display: none; }
+  @media (max-width: 700px) {
+    #c { height: 46dvh; } #stage.open #c { width: 100%; height: 34dvh; }
+    #views, #tip { display: none; } #stats { display: none; }
+    #list { display: block; position: absolute; left: 0; right: 0; top: 46dvh; bottom: 0; overflow-y: auto; background: #05070d; border-top: 1px solid var(--line); padding: 6px 10px 20px; }
+    #stage.open #list { display: none; }
+    #panel { left: 0; top: 34dvh; width: auto; border-left: 0; border-top: 1px solid var(--line); }
+    #list .chips { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; position: sticky; top: -6px; background: #05070d; }
+    #list .chips button.on { background: var(--accent); color: #120c2a; }
+    #list h2 { font-size: 13px; letter-spacing: 0.08em; margin: 14px 2px 6px; }
+    #list .card { display: flex; width: 100%; align-items: center; gap: 10px; text-align: left; background: var(--panel); border-radius: 10px; padding: 10px 12px; margin-bottom: 7px; }
+    #list .card .grow { flex: 1; min-width: 0; } #list .card .nm { font-weight: 650; font-size: 16px; } #list .card .sb { font-size: 13.5px; color: var(--ink-2); }
+    #list .card .big { font-weight: 750; font-size: 17px; white-space: nowrap; }
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" aria-label="3D city: one building per item, grouped into districts"></canvas>
+  <header><h1 id="title">MY <span>CITY</span></h1><small id="sub"></small><small id="updated"></small></header>
+  <div id="stats" aria-label="Headline numbers"></div>
+  <div id="tip"></div>
+  <nav id="views" aria-label="Choose a district"></nav>
+  <aside id="panel" aria-label="Building details"></aside>
+  <section id="list" aria-label="Every building, in large print"></section>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// ---------- settings and data ----------
+const CFG = await (await fetch("config.json", { cache: "no-store" })).json().catch(() => ({}));
+const T = { accent: "#9b7bff", gold: "#f5c542", good: "#3fc56b", bad: "#ef6b6b", ground: "#150f36", sky: "#05070d", ...(CFG.theme || {}) };
+const LB = { valueTitle: "Value", openTitle: "Open now", listTitle: "Latest", aboutTitle: "About", ...(CFG.labels || {}) };
+for (const [k, v] of Object.entries({ accent: T.accent, gold: T.gold, good: T.good, bad: T.bad })) document.documentElement.style.setProperty("--" + k, v);
+const words = (CFG.title || "My City").split(" ");
+document.getElementById("title").innerHTML = esc(words.slice(0, -1).join(" ").toUpperCase()) + " <span>" + esc(words.slice(-1)[0].toUpperCase()) + "</span>";
+document.getElementById("sub").textContent = CFG.subtitle || "";
+document.title = CFG.title || "City";
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
+const toneCol = t => t === "good" ? T.good : t === "bad" ? T.bad : "#e6e0ff";
+let data = { districts: [], buildings: [], summary: [] };
+
+// ---------- scene ----------
+const stage = document.getElementById("stage"), canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, matchMedia("(max-width: 700px)").matches ? 1.5 : 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(T.sky); scene.fog = new THREE.Fog(T.sky, 140, 420);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 1200);
+const controls = new OrbitControls(camera, canvas); controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 8; controls.maxDistance = 400;
+scene.add(new THREE.HemisphereLight(0x8f9bd8, 0x1a1238, T.night === false ? 1.6 : 0.9));
+const moon = new THREE.DirectionalLight(0xcfd6ff, T.night === false ? 1.8 : 1.1); moon.position.set(-60, 120, 80); scene.add(moon);
+const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, metalness: 0.15, ...o });
+const glow = c => new THREE.MeshBasicMaterial({ color: c });
+{ const g = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), mat(T.ground)); g.rotation.x = -Math.PI / 2; scene.add(g);
+  const pos = []; for (let i = 0; i < 500; i++) { const a = Math.random() * 6.28, e = 0.08 + Math.random() * 1.2; pos.push(Math.cos(a) * Math.cos(e) * 380, Math.sin(e) * 380, Math.sin(a) * Math.cos(e) * 380); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xcfd6ea, size: 1.4, sizeAttenuation: false, fog: false })));
+  const m = new THREE.Mesh(new THREE.SphereGeometry(10, 24, 16), new THREE.MeshBasicMaterial({ color: 0xdfe4f1, fog: false })); m.position.set(-120, 90, -220); scene.add(m); }
+
+// a seeded random so each building keeps the same windows between refreshes
+const rnd = s => { let x = 0; for (const ch of String(s)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); };
+function facade(id, lit, cols, rows, tint) {
+  const c = document.createElement("canvas"); c.width = 128; c.height = 256; const x = c.getContext("2d"), r = rnd(id);
+  x.fillStyle = "#1a2034"; x.fillRect(0, 0, 128, 256);
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) { x.fillStyle = r() < lit ? (r() < 0.2 ? tint : "#f5d98a") : "#0c1020"; x.fillRect(8 + i * (112 / cols), 8 + j * (240 / rows), 112 / cols - 6, 240 / rows - 7); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function block(w, h, d, tex) { const m = mat(0x232c44, { map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9 }); const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.y = h / 2; return b; }
+
+// ---------- buildings: five procedural styles ----------
+function makeBuilding(b, color) {
+  const g = new THREE.Group(), H = Math.max(4, Math.min(40, +b.height || 10)), tex = facade(b.id, b.lit ?? 0.5, 4, Math.max(3, Math.round(H / 2)), color);
+  let w = 8, d = 7, top = H; const style = b.style || "tower", trim = mat(0x55607f);
+  if (style === "tower") { w = 7; d = 7; g.add(block(w, H, d, tex)); const cap = block(4.4, 3, 4.4, tex); cap.position.y = H + 1.5; g.add(cap);
+    const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 4, 6), trim); ant.position.y = H + 5; g.add(ant);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), glow(T.bad)); bulb.position.y = H + 7.1; g.add(bulb); top = H + 7.5; }
+  else if (style === "spire") { w = 6; d = 6; g.add(block(w, H, d, tex)); const c = new THREE.Mesh(new THREE.ConeGeometry(2.6, 7, 4), mat(color)); c.position.y = H + 3.5; c.rotation.y = Math.PI / 4; g.add(c); top = H + 7; }
+  else if (style === "dome") { w = 9; d = 9; const cyl = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, H, 24), mat(0x232c44, { map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9 })); cyl.position.y = H / 2; g.add(cyl);
+    const dm = new THREE.Mesh(new THREE.SphereGeometry(4.5, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(color, { metalness: 0.5, roughness: 0.4 })); dm.position.y = H; g.add(dm); top = H + 4.5; }
+  else if (style === "twin") { w = 10; d = 6; const a = block(3.6, H, 5, tex); a.position.x = -3.1; g.add(a); const c = block(3.6, H * 0.85, 5, tex); c.position.x = 3.1; g.add(c);
+    const br = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.6, 1.6), glow(color)); br.position.y = H * 0.6; g.add(br); }
+  else { w = 11; d = 8; g.add(block(w, H, d, tex)); const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.5, d + 0.6), trim); roof.position.y = H + 0.25; g.add(roof);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, 0.35, 0.1), glow(color)); sign.position.set(0, H * 0.8, d / 2 + 0.06); g.add(sign); top = H + 0.5; }
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2, 0.1), glow(0xf5d98a)); door.position.set(0, 1, d / 2 + 0.06); g.add(door);
+  return { g, w, d, top };
+}
+
+// ---------- labels: name, status, value, gauges, open items ----------
+function drawLabel(b) {
+  const live = (b.live || []).slice(0, 3), gauges = (b.gauges || []).slice(0, 2), gh = gauges.length ? 26 : 0;
+  const c = document.createElement("canvas"); c.width = 768; c.height = 176 + gh + (live.length ? 14 + live.length * 60 : 0); const x = c.getContext("2d"), col = b.tone === "good" ? T.good : b.tone === "bad" ? T.bad : T.accent;
+  x.fillStyle = "rgba(20,13,46,0.94)"; x.strokeStyle = col; x.lineWidth = 6; x.shadowColor = col; x.shadowBlur = 18; x.beginPath(); x.roundRect(14, 14, 740, c.height - 28, 60); x.fill(); x.stroke(); x.shadowBlur = 0;
+  x.textAlign = "center"; x.fillStyle = "#fff"; x.font = "800 50px system-ui, sans-serif"; x.fillText(String(b.name || b.id).toUpperCase(), 384, 76, 640);
+  x.fillStyle = toneCol(b.tone); x.font = "750 42px system-ui, sans-serif"; x.fillText([b.value, b.status].filter(Boolean).join("  ·  "), 384, 134, 660);
+  gauges.forEach((q, i) => { const bw = gauges.length > 1 ? 260 : 540, bx = gauges.length > 1 ? 110 + i * 285 : 114; x.fillStyle = "rgba(255,255,255,0.12)"; x.beginPath(); x.roundRect(bx, 156, bw, 12, 6); x.fill();
+    const sh = Math.max(0, Math.min(1, +q.share || 0)); if (sh) { x.fillStyle = q.color || T.good; x.beginPath(); x.roundRect(bx, 156, Math.max(12, bw * sh), 12, 6); x.fill(); } });
+  if (live.length) { x.strokeStyle = "rgba(245,197,66,0.45)"; x.lineWidth = 3; x.beginPath(); x.moveTo(60, 164 + gh); x.lineTo(708, 164 + gh); x.stroke();
+    live.forEach((r, i) => { const y = 214 + gh + i * 60; x.textAlign = "left"; x.fillStyle = T.gold; x.beginPath(); x.arc(64, y - 13, 10, 0, 7); x.fill(); x.font = "700 38px system-ui, sans-serif"; x.fillText(r.text || "", 86, y, 420);
+      x.textAlign = "right"; x.fillStyle = toneCol(r.tone); x.font = "800 42px system-ui, sans-serif"; x.fillText(r.value || "", 712, y + 2, 200); }); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return { t, h: c.height };
+}
+function sprite(tex, w, h) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); s.scale.set(w, h, 1); s.center.set(0.5, 0); return s; }
+function districtSign(D, n) {
+  const c = document.createElement("canvas"); c.width = 1000; c.height = 380; const x = c.getContext("2d"), col = D.color || T.accent;
+  x.fillStyle = "rgba(20,13,46,0.95)"; x.strokeStyle = col; x.lineWidth = 9; x.shadowColor = col; x.shadowBlur = 26; x.beginPath(); x.roundRect(14, 14, 972, 352, 44); x.fill(); x.stroke(); x.shadowBlur = 0;
+  x.textAlign = "center"; x.fillStyle = col; x.font = "900 92px system-ui, sans-serif"; x.fillText(String(D.name || D.id).toUpperCase(), 500, 124, 920);
+  x.fillStyle = "#e6e0ff"; x.font = "700 56px system-ui, sans-serif"; x.fillText(D.line || `${n} building${n === 1 ? "" : "s"}`, 500, 216, 920);
+  const open = data.buildings.filter(b => b.district === D.id).reduce((a, b) => a + (b.live || []).length, 0);
+  x.fillStyle = open ? T.gold : "#b6bccb"; x.font = "700 52px system-ui, sans-serif"; x.fillText(open ? `● ${open} open` : "nothing open", 500, 304, 920);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+// ---------- layout: districts as islands in a grid, buildings in rows inside each ----------
+let city = null, clickable = [], spots = {}, bounds = {}, labels = {}, signs = [], view = "all", current = null, builtFrom = "";
+const SPACE = 13, PER_ROW = 4, GAP = 12, SMALL = 0.6;
+function dispose(o) { o.traverse(q => { q.geometry && q.geometry.dispose(); const ms = Array.isArray(q.material) ? q.material : q.material ? [q.material] : []; ms.forEach(m => { m.map && m.map.dispose(); m.emissiveMap && m.emissiveMap.dispose(); m.dispose(); }); }); }
+function build() {
+  if (city) { scene.remove(city); dispose(city); }
+  city = new THREE.Group(); clickable = []; spots = {}; bounds = {}; labels = {}; signs = [];
+  const D = data.districts.length ? data.districts : [{ id: "_", name: "City" }];
+  const sizes = D.map(d => { const n = data.buildings.filter(b => (b.district || "_") === d.id).length; return { n, w: Math.min(PER_ROW, Math.max(1, n)) * SPACE, d: Math.max(1, Math.ceil(n / PER_ROW)) * SPACE }; });
+  const cols = Math.ceil(Math.sqrt(D.length)), cw = Math.max(...sizes.map(s => s.w)) + GAP, cd = Math.max(...sizes.map(s => s.d)) + GAP, rows = Math.ceil(D.length / cols);
+  D.forEach((dist, i) => {
+    const cx = (i % cols - (cols - 1) / 2) * cw, cz = (Math.floor(i / cols) - (rows - 1) / 2) * cd, s = sizes[i], col = new THREE.Color(dist.color || T.accent);
+    const pad = new THREE.Mesh(new THREE.PlaneGeometry(s.w + 4, s.d + 4), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.07 })); pad.rotation.x = -Math.PI / 2; pad.position.set(cx, 0.02, cz); city.add(pad);
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(s.w + 4, s.d + 4)), new THREE.LineBasicMaterial({ color: col })); edge.rotation.x = -Math.PI / 2; edge.position.set(cx, 0.04, cz); city.add(edge);
+    bounds[dist.id] = { x0: cx - s.w / 2, x1: cx + s.w / 2, z0: cz - s.d / 2, z1: cz + s.d / 2 };
+    data.buildings.filter(b => (b.district || "_") === dist.id).forEach((b, j) => {
+      const x = cx - s.w / 2 + SPACE / 2 + (j % PER_ROW) * SPACE, z = cz - s.d / 2 + SPACE / 2 + Math.floor(j / PER_ROW) * SPACE;
+      const { g, w, d, top } = makeBuilding(b, dist.color || T.accent);
+      const { t, h } = drawLabel(b), L = sprite(t, 11, 2.52 * h / 176); L.position.set(0, top + 2, 0); L.userData.base = [11, 2.52 * h / 176]; g.add(L); labels[b.id] = L;
+      g.position.set(x, 0, z); g.traverse(o => { o.userData.id = b.id; }); city.add(g); clickable.push(g);
+      spots[b.id] = { x, z, w, d, top, district: dist.id };
+    });
+    const sg = sprite(districtSign(dist, s.n), 26, 26 * 380 / 1000); sg.position.set(cx, 14, cz); sg.renderOrder = 40; sg.userData.view = dist.id; city.add(sg); signs.push(sg);
+  });
+  scene.add(city);
+}
+
+// ---------- camera: fit whatever is being looked at into the screen ----------
+let tween = null;
+function fly(pos, tgt, ms = 900) { tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: tgt, start: performance.now(), ms }; }
+function fitBox(x0, x1, z0, z1, hgt, steep) {
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, span = Math.max(x1 - x0, (z1 - z0) * 1.3, 20), aspect = camera.aspect || 1.5;
+  const dist = span / (2 * Math.tan(camera.fov * Math.PI / 360)) / Math.min(1, aspect) * (aspect < 1.3 ? 1.25 : 0.9) + hgt * 0.5;
+  const dir = new THREE.Vector3(0, steep, 0.75).normalize();
+  fly(new THREE.Vector3(cx, 0, cz).addScaledVector(dir, dist), new THREE.Vector3(cx, hgt * 0.3, cz));
+}
+function viewCamera() {
+  if (current) return;
+  const ids = view === "all" ? Object.keys(bounds) : [view]; if (!ids.length) return;
+  const b = ids.map(i => bounds[i]); fitBox(Math.min(...b.map(q => q.x0)) - 6, Math.max(...b.map(q => q.x1)) + 6, Math.min(...b.map(q => q.z0)) - 6, Math.max(...b.map(q => q.z1)) + 6, view === "all" ? 16 : 22, view === "all" ? 1.2 : 0.8);
+}
+function focus(id) { const s = spots[id]; if (!s) return; current = id; stage.classList.add("open"); resize(); fly(new THREE.Vector3(s.x + 8, s.top * 0.9 + 12, s.z + s.d / 2 + 30 + s.top * 0.6), new THREE.Vector3(s.x, s.top * 0.6, s.z)); panel(); }
+function unfocus() { current = null; stage.classList.remove("open"); resize(); viewCamera(); renderViews(); }
+
+// ---------- views, panel, phone list, headline tiles ----------
+function renderViews() {
+  const vs = [{ id: "all", name: "All" }, ...data.districts.map(d => ({ id: d.id, name: d.name }))];
+  document.getElementById("views").innerHTML = (current ? `<button data-back="1">← Back</button>` : "") + vs.map(v => `<button class="${v.id === view ? "on" : ""}" data-view="${esc(v.id)}" aria-pressed="${v.id === view}">${esc(v.name)}</button>`).join("");
+  list();
+}
+document.getElementById("views").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.back) return unfocus(); view = b.dataset.view; if (current) unfocus(); else { viewCamera(); renderViews(); } });
+function spark(h) { if (!h || h.length < 2) return ""; const lo = Math.min(...h), hi = Math.max(...h), W = 300, H = 80, P = 6, X = i => P + i * (W - 2 * P) / (h.length - 1), Y = v => H - P - (v - lo) / ((hi - lo) || 1) * (H - 2 * P);
+  return `<div class="spark"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="History"><polyline fill="none" stroke="${h[h.length - 1] >= h[0] ? T.good : T.bad}" stroke-width="2" vector-effect="non-scaling-stroke" points="${h.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ")}"/></svg></div>`; }
+function panel() {
+  const b = data.buildings.find(q => q.id === current), el = document.getElementById("panel"); if (!b) return unfocus();
+  const D = data.districts.find(d => d.id === b.district) || {}, ids = data.buildings.map(q => q.id), i = ids.indexOf(b.id);
+  el.innerHTML = `<div class="bar"><button id="p-back">← City</button><span class="grow"></span><button id="p-prev" aria-label="Previous building">‹</button><button id="p-next" aria-label="Next building">›</button></div>
+    <div class="head"><div class="dist" style="color:${esc(D.color || T.accent)}">${esc(D.name || "")}</div><h2>${esc(b.name || b.id)}</h2>
+      <div class="hl ${esc(b.tone || "")}">${esc(b.value || "")}</div><div style="color:var(--ink-2)">${esc(b.status || "")}</div>
+      ${(b.live || []).map(r => `<div class="live"><span>● ${esc(r.text)}</span><span class="${esc(r.tone || "")}">${esc(r.value || "")}</span></div>`).join("")}</div>
+    <div class="body">${(b.gauges || []).map(q => `<div class="meter"><div class="top"><span>${esc(q.label)}</span><span>${Math.round((+q.share || 0) * 100)}%</span></div><div class="track"><b style="width:${Math.max(0, Math.min(100, (+q.share || 0) * 100))}%;background:${esc(q.color || T.good)}"></b></div></div>`).join("")}
+      ${(b.stats || []).length ? `<h3>Details</h3><div class="grid">${b.stats.map(([k, v]) => `<div class="cell"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div>` : ""}
+      ${spark(b.history) ? `<h3>History</h3>${spark(b.history)}` : ""}
+      ${(b.list || []).length ? `<h3>${esc(LB.listTitle)}</h3><table>${b.list.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td class="n ${esc(r[3] || "")}">${esc(r[2] ?? "")}</td></tr>`).join("")}</table>` : ""}
+      ${b.about ? `<h3>${esc(LB.aboutTitle)}</h3><p style="color:var(--ink-2)">${esc(b.about)}</p>` : ""}</div>`;
+  el.querySelector("#p-back").onclick = unfocus;
+  el.querySelector("#p-prev").onclick = () => focus(ids[(i - 1 + ids.length) % ids.length]);
+  el.querySelector("#p-next").onclick = () => focus(ids[(i + 1) % ids.length]);
+}
+function list() {
+  const el = document.getElementById("list"), D = data.districts.filter(d => view === "all" || d.id === view);
+  el.innerHTML = `<div class="chips">${[{ id: "all", name: "All" }, ...data.districts].map(v => `<button class="${v.id === view ? "on" : ""}" data-view="${esc(v.id)}">${esc(v.name)}</button>`).join("")}</div>` +
+    D.map(d => `<h2 style="color:${esc(d.color || T.accent)}">${esc(String(d.name).toUpperCase())}</h2>` + data.buildings.filter(b => b.district === d.id).map(b =>
+      `<button class="card" data-id="${esc(b.id)}"><span class="grow"><div class="nm">${esc(b.name)}</div><div class="sb">${esc(b.status || "")}</div>${(b.live || []).map(r => `<div style="color:var(--gold);font-size:14px">● ${esc(r.text)} ${esc(r.value || "")}</div>`).join("")}</span><span class="big ${esc(b.tone || "")}">${esc(b.value || "")}</span></button>`).join("")).join("");
+}
+document.getElementById("list").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.view) { view = b.dataset.view; renderViews(); viewCamera(); } else if (b.dataset.id) focus(b.dataset.id); });
+function tiles() { document.getElementById("stats").innerHTML = (data.summary || []).map(s => `<div class="tile"><div class="k">${esc(s.label)}</div><div class="v ${esc(s.tone || "")}">${esc(s.value)}</div></div>`).join(""); }
+
+// ---------- pointer: hover tips, click a building or a district sign ----------
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), tip = document.getElementById("tip"); let down = null;
+function at(e, objs) { const r = canvas.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ptr, camera); return ray.intersectObjects(objs, true)[0]; }
+canvas.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; });
+canvas.addEventListener("pointerup", e => { if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return; down = null;
+  if (view === "all" && !current) { const s = at(e, signs); if (s) { view = s.object.userData.view; renderViews(); viewCamera(); return; } }
+  const h = at(e, clickable.map(g => g)); const id = h && h.object.userData.id; if (id && !h.object.isSprite) focus(id); });
+canvas.addEventListener("pointermove", e => { const h = at(e, clickable); const id = h && !h.object.isSprite && h.object.userData.id, b = id && data.buildings.find(q => q.id === id);
+  canvas.style.cursor = b ? "pointer" : "grab"; if (!b) { tip.style.display = "none"; return; } const r = stage.getBoundingClientRect();
+  tip.textContent = `${b.name}: ${[b.value, b.status].filter(Boolean).join(", ")}`; tip.style.display = "block"; tip.style.left = (e.clientX - r.left + 14) + "px"; tip.style.top = (e.clientY - r.top + 14) + "px"; });
+
+// ---------- loop: overview shrinks buildings and shows district signs; labels stay readable from afar ----------
+const _wp = new THREE.Vector3();
+function readable() {
+  const overview = view === "all" && !current, want = overview ? SMALL : 1;
+  signs.forEach(s => { s.visible = overview; });
+  clickable.forEach(g => { const k = g.scale.x + (want - g.scale.x) * 0.12; g.scale.setScalar(Math.abs(want - k) < 0.002 ? want : k);
+    const id = g.userData.id, L = labels[id];
+    if (L) { L.visible = current ? current === id : !overview && (view === "all" || (spots[id] && spots[id].district === view)); L.getWorldPosition(_wp); const f = Math.min(1.9, Math.max(1, _wp.distanceTo(camera.position) / 60)); L.scale.set(L.userData.base[0] * f, L.userData.base[1] * f, 1); } });
+}
+const ease = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+function tick() {
+  if (tween) { const k = Math.min(1, (performance.now() - tween.start) / tween.ms), e = ease(k); camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e); if (k >= 1) tween = null; }
+  readable(); controls.update(); renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(() => { try { tick(); } catch (e) { console.error(e); } });   // one bad frame never stops the loop
+function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+new ResizeObserver(() => { resize(); }).observe(canvas);
+
+// ---------- data refresh: rebuild only when the city's shape changes ----------
+async function load() {
+  try {
+    data = await (await fetch(CFG.dataUrl || "data.json", { cache: "no-store" })).json();
+    data.districts = data.districts || []; data.buildings = data.buildings || [];
+    const shape = JSON.stringify([data.districts, data.buildings.map(b => [b.id, b.district, b.style, b.height, b.lit])]), full = JSON.stringify(data);
+    if (shape !== builtFrom) { build(); builtFrom = shape; resize(); viewCamera(); }
+    else if (full !== load.last) { for (const b of data.buildings) { const L = labels[b.id]; if (!L) continue; const { t, h } = drawLabel(b); L.material.map.dispose(); L.material.map = t; L.userData.base = [11, 2.52 * h / 176]; }
+      signs.forEach(s => { const D = data.districts.find(d => d.id === s.userData.view); if (D) { s.material.map.dispose(); s.material.map = districtSign(D, data.buildings.filter(b => b.district === D.id).length); } }); }
+    load.last = full;
+    tiles(); renderViews(); if (current) panel();
+    document.getElementById("updated").textContent = data.updated ? "Updated " + data.updated : "";
+  } catch (e) { document.getElementById("updated").textContent = "Could not load the data: " + e.message; }
+}
+await load();
+setInterval(() => { if (!document.hidden) load(); }, Math.max(5, CFG.refreshSeconds || 60) * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && current) unfocus(); });
+</script>
+</body>
+</html>
