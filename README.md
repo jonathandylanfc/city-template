@@ -4,6 +4,8 @@ A 3D night city where every item is a building and every group is a district. Cl
 
 No build step and no dependencies beyond a browser: `index.html` loads three.js from a CDN.
 
+**Start your own city:** click **Use this template** on GitHub, then follow [CONTRIBUTING.md](CONTRIBUTING.md). Using Claude Code? It picks up [CLAUDE.md](CLAUDE.md) automatically.
+
 ## Files
 
 | File | What it is |
@@ -53,3 +55,7 @@ Point `dataUrl` at `/api/data` and edit `get_data()` in `server.py` to build the
 * **A server** (Railway, Render, Fly, any VPS): run `python3 server.py`; it listens on the `PORT` the host provides.
 
 Keep secrets out of `data.json` and `config.json`: both are downloadable by anyone who can open the page.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
